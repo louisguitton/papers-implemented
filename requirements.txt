@@ -3,3 +3,5 @@ pandas
 spacy
 networkx
 matplotlib
+scipy
+textacy
