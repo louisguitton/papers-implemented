@@ -1,0 +1,5 @@
+jupyterlab
+pandas
+spacy
+networkx
+matplotlib
