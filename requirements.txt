@@ -6,3 +6,5 @@ matplotlib
 scipy
 textacy
 seaborn
+bokeh
+wmd
