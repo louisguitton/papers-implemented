@@ -8,3 +8,4 @@ textacy
 seaborn
 bokeh
 wmd
+datasketch[scipy]
