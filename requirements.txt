@@ -9,3 +9,5 @@ seaborn
 bokeh
 wmd
 datasketch[scipy]
+ipywidgets
+trax
