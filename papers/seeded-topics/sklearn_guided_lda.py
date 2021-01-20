@@ -1,23 +1,11 @@
 """
 
 Ref:
--  Li et al (2017)
+- Jagarlamudi, J., Iii, H. D., & Udupa, R. (2012). Incorporating lexical priors into topic models.
+    EACL 2012 - 13th Conference of the European Chapter of the Association for Computational
+    Linguistics, Proceedings, 204–213. https://www.aclweb.org/anthology/E12-1021
+- https://www.freecodecamp.org/news/how-we-changed-unsupervised-lda-to-semi-supervised-guidedlda-e36a95f3a164/
 - https://stackoverflow.com/questions/45170093/latent-dirichlet-allocation-with-prior-topic-words#45170093
-
-    References
-    ----------
-    Blei, David M., Andrew Y. Ng, and Michael I. Jordan. "Latent Dirichlet
-    Allocation." Journal of Machine Learning Research 3 (2003): 993–1022.
-    Griffiths, Thomas L., and Mark Steyvers. "Finding Scientific Topics."
-    Proceedings of the National Academy of Sciences 101 (2004): 5228–5235.
-    doi:10.1073/pnas.0307752101.
-    Wallach, Hanna, David Mimno, and Andrew McCallum. "Rethinking LDA: Why
-    Priors Matter." In Advances in Neural Information Processing Systems 22,
-    edited by Y.  Bengio, D. Schuurmans, J. Lafferty, C. K. I. Williams, and A.
-    Culotta, 1973–1981, 2009.
-    Buntine, Wray. "Estimating Likelihoods for Topic Models." In Advances in
-    Machine Learning, First Asian Conference on Machine Learning (2009): 51–64.
-    doi:10.1007/978-3-642-05224-8_6.
 """
 from typing import List
 from sklearn.feature_extraction.text import CountVectorizer
@@ -28,9 +16,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
-class GuidedLatentDirichletAllocation(LatentDirichletAllocation):
-    # TODO: check what value to use from the papers
-    _SEED_WEIGHT = 100.
+class GuidedLDA(LatentDirichletAllocation):
 
     def __init__(
         self,
@@ -50,10 +36,11 @@ class GuidedLatentDirichletAllocation(LatentDirichletAllocation):
         n_jobs=None,
         verbose=0,
         random_state=None,
-        seed_words:List[List[str]]=None,
-        tf_vectorizer: CountVectorizer=None
+        seed_words: List[List[str]] = None,
+        seed_confidence: float = 100.,
+        tf_vectorizer: CountVectorizer = None,
     ):
-        super(GuidedLatentDirichletAllocation, self).__init__(
+        super(GuidedLDA, self).__init__(
             n_components,
             doc_topic_prior,
             topic_word_prior,
@@ -73,6 +60,7 @@ class GuidedLatentDirichletAllocation(LatentDirichletAllocation):
         )
         self.seed_words = seed_words
         self.tf_vectorizer = tf_vectorizer
+        self.seed_confidence = seed_confidence
 
     def _init_latent_vars(self, n_features):
         """Initialize latent variables."""
@@ -84,34 +72,40 @@ class GuidedLatentDirichletAllocation(LatentDirichletAllocation):
         self.n_iter_ = 0
 
         if self.doc_topic_prior is None:
-            self.doc_topic_prior_ = 1. / self.n_components
+            self.doc_topic_prior_ = 1.0 / self.n_components
         else:
             self.doc_topic_prior_ = self.doc_topic_prior
 
         if self.topic_word_prior is None:
-            self.topic_word_prior_ = 1. / self.n_components
+            self.topic_word_prior_ = 1.0 / self.n_components
         else:
             self.topic_word_prior_ = self.topic_word_prior
 
-        init_gamma = 100.
-        init_var = 1. / init_gamma
+        init_gamma = 100.0
+        init_var = 1.0 / init_gamma
         # In the literature, this is called `lambda`
         self.components_ = self.random_state_.gamma(
-            init_gamma, init_var, (self.n_components, n_features))
+            init_gamma, init_var, (self.n_components, n_features)
+        )
         # End sklearn code
         # ##############
         # Start custom code
 
         # Transform topic values in matrix for prior topic words
-        seed_documents: List[str] = [" ".join(topic_words) for topic_words in self.seed_words]
+        seed_documents: List[str] = [
+            " ".join(topic_words) for topic_words in self.seed_words
+        ]
         topics_to_words: csr_matrix = self.tf_vectorizer.transform(seed_documents)
-        ones = np.ones(self.components_.shape)
-        ones[:topics_to_words.shape[0], :topics_to_words.shape[1]] += topics_to_words * self._SEED_WEIGHT
-        self.components_ = np.multiply(self.components_, ones)
+        bias = np.ones(self.components_.shape)
+        bias[
+            : topics_to_words.shape[0], : topics_to_words.shape[1]
+        ] += topics_to_words * (self.seed_confidence)
+        self.components_ = np.multiply(self.components_, bias)
 
         # End custom code
         # ##############
         # Start sklearn code
         # In the literature, this is `exp(E[log(beta)])`
         self.exp_dirichlet_component_ = np.exp(
-            _dirichlet_expectation_2d(self.components_))
+            _dirichlet_expectation_2d(self.components_)
+        )
