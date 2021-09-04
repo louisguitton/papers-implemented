@@ -110,5 +110,6 @@
         "ranges": "cpp",
         "stop_token": "cpp",
         "syncstream": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": false
 }
