@@ -111,5 +111,10 @@
         "stop_token": "cpp",
         "syncstream": "cpp"
     },
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": true,
+    "cmake.sourceDirectory": "${workspaceFolder}/moocs/self/cpp/linearRegression",
+    "cmake.configureSettings": {
+        "CMAKE_TOOLCHAIN_FILE": "/Users/louis.guitton/workspace/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        // "C_INCLUDE_PATH": "/usr/local/Cellar/python@3.8/3.8.11/Frameworks/Python.framework/Headers/"
+    }
 }
